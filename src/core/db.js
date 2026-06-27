@@ -79,6 +79,13 @@ export async function initEngine() {
         const buf = new Uint8Array(await res.arrayBuffer());
         bytes = buf.byteLength ? buf : null;
       }
+      // First run with the file backend but no file yet: migrate any data left over
+      // from the older browser-storage version, so nothing is orphaned. bootstrap()'s
+      // final persist writes it into the new on-disk file.
+      if (!bytes) {
+        const saved = await idbGet(IDB_DB_KEY);
+        if (saved) bytes = new Uint8Array(saved);
+      }
     }
   } catch {
     /* no backend reachable — fall back to browser storage */
