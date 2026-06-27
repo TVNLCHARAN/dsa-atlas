@@ -6,7 +6,7 @@
 // and emits change events so views can re-render.
 
 import repo from "../storage/repository.js";
-import { initEngine, exportBytes, loadFromBytes, persistNow, exec } from "../core/db.js";
+import { initEngine, exportBytes, loadFromBytes, persistNow, exec, getStorageInfo } from "../core/db.js";
 import { migrate } from "../storage/schema.js";
 import { bus, EVENTS } from "../core/eventbus.js";
 import { DEFAULT_SETTINGS, CONCEPT_STATUS, ACCENTS } from "../core/config.js";
@@ -359,6 +359,9 @@ export const store = {
   // ---------------------------------------------------------------- backup / import
   exportDbBytes() {
     return exportBytes();
+  },
+  storageInfo() {
+    return getStorageInfo();
   },
   async importDbBytes(bytes) {
     loadFromBytes(bytes);

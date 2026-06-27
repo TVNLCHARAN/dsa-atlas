@@ -75,10 +75,19 @@ Requirements: **Node.js** *or* **Python 3** (you have both). No `npm install` ne
 
 ## 🗂️ Where your data lives
 
-Your database is stored in the browser's **IndexedDB** for this app (origin `localhost:8123`),
-saved as a real SQLite binary on every change. **Download a `.db` backup regularly**
-(Settings → Data & backup) — clearing browser data will erase the local copy. The exported
-`.db` opens in any SQLite tool (DB Browser, `sqlite3`, etc.).
+When launched via **Node** (the default), your data lives in a **real SQLite file on disk**:
+`data/dsa-atlas.db` (override with the `DSA_DB` env var). The browser loads it on open
+(`GET /api/db`) and writes it back automatically on every change (`POST /api/db`, atomic
+temp-file + rename). **No manual backup or restore needed** — the file *is* the database, and
+opens in any SQLite tool (DB Browser, `sqlite3`, DBeaver).
+
+The in-browser SQLite (sql.js) is just a fast working copy in memory; the disk file is the
+source of truth. If the server isn't reachable (e.g. you started it with plain Python instead
+of Node), the app **falls back to browser IndexedDB** and tells you so in Settings — there,
+download a `.db` backup periodically. The app also requests `navigator.storage.persist()` so
+that fallback copy isn't evicted under storage pressure.
+
+Settings → *Data & backup* shows the active mode and the exact file path.
 
 ---
 
@@ -89,7 +98,7 @@ Clean separation so the **storage backend can change without touching the UI**:
 ```
 index.html ── vendor/ (sql.js, highlight.js)        # offline libraries
 src/
-  core/        config · dates · dom · eventbus · router · db (sql.js engine + IndexedDB persistence)
+  core/        config · dates · dom · eventbus · router · db (sql.js engine + on-disk file / IndexedDB persistence)
   storage/     schema (DDL + migrations) · repository (the ONLY layer that knows tables/columns)
   domain/      review-engine · streak · roadmap-logic · analytics      ← pure, unit-tested
   services/    store (business-logic facade) · search · export

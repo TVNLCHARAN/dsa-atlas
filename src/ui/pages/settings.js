@@ -77,8 +77,28 @@ export function render() {
   page.appendChild(orderCard);
 
   // ---- Data & backup ----
+  const mode = store.storageInfo().mode;
+  const storageStatus = h("div", { class: `storage-status storage-status--${mode}` });
+  if (mode === "file") {
+    const pathEl = h("code", { class: "inline-code" }, "data/dsa-atlas.db");
+    storageStatus.append(
+      h("span", { class: "storage-badge storage-badge--ok" }, icon("check", { size: 13 }), " Live file"),
+      h("span", {}, "Saving automatically to a real SQLite file on disk — no manual backup needed. ", pathEl)
+    );
+    // Fill in the absolute path + size from the server.
+    fetch("api/info").then((r) => r.json()).then((j) => {
+      pathEl.textContent = j.path + (j.exists ? ` · ${(j.size / 1024).toFixed(0)} KB` : " · new");
+    }).catch(() => {});
+  } else {
+    storageStatus.append(
+      h("span", { class: "storage-badge storage-badge--warn" }, icon("alert", { size: 13 }), " Browser storage"),
+      h("span", {}, "No local-file server detected, so data is in this browser's IndexedDB. Launch via start-dsa.bat (Node) for the on-disk .db file. Download a backup regularly.")
+    );
+  }
+
   page.appendChild(card({},
-    sectionHeader("Data & backup", { iconName: "layers", sub: "Everything is stored locally in SQLite" }),
+    sectionHeader("Data & backup", { iconName: "layers", sub: mode === "file" ? "Live SQLite file on disk" : "Stored locally in your browser" }),
+    storageStatus,
     h("div", { class: "export-grid" },
       button("Backup .db", { variant: "primary", iconName: "download", onClick: () => { exportDb(); toast("SQLite backup downloaded", "success"); } }),
       button("Export JSON", { variant: "default", iconName: "download", onClick: () => exportJSON() }),
@@ -102,7 +122,10 @@ export function render() {
         } catch (e) { toast("Invalid backup file", "error"); }
       })
     ),
-    h("p", { class: "muted storage-note" }, icon("alert", { size: 14 }), " Data lives in your browser's local storage for this app (IndexedDB) and is saved as a real SQLite database. Download a .db backup regularly — clearing browser data will erase it.")
+    h("p", { class: "muted storage-note" }, icon("layers", { size: 14 }),
+      mode === "file"
+        ? " The .db file IS a normal SQLite database — open it in any SQLite tool. Exports above are extra copies; restore replaces the live file."
+        : " Download a .db backup regularly. Restore replaces the live database. Clearing this browser's site data would erase the in-browser copy.")
   ));
 
   page.appendChild(card({ className: "about-card" },

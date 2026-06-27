@@ -10,9 +10,18 @@
 
 import { IDB_DATABASE, IDB_STORE, IDB_DB_KEY } from "./config.js";
 import { debounce } from "./dom.js";
+import { bus, EVENTS } from "./eventbus.js";
 
 let SQL = null; // sql.js module
 let db = null; // SQL.Database instance
+
+// Storage backend: "file" = real .db on disk via the local server (preferred),
+// "indexeddb" = browser fallback when no server API is present (e.g. plain static host).
+let backendMode = "indexeddb";
+let saveErrorNotified = false;
+
+const API_INFO = "api/info";
+const API_DB = "api/db";
 
 // ---------- IndexedDB blob storage (single key holding the .sqlite bytes) ----------
 
@@ -57,13 +66,48 @@ export async function initEngine() {
   }
   SQL = await window.initSqlJs({ locateFile: (file) => `vendor/${file}` });
 
-  const saved = await idbGet(IDB_DB_KEY);
-  if (saved) {
-    db = new SQL.Database(new Uint8Array(saved));
-  } else {
-    db = new SQL.Database();
+  let bytes = null;
+
+  // Prefer the local-file backend served by server.js. The X-DSA-Backend header confirms
+  // it's our server (a plain static host would 404 /api/info without the header).
+  try {
+    const info = await fetch(API_INFO, { cache: "no-store" });
+    if (info.ok && info.headers.get("X-DSA-Backend") === "file") {
+      backendMode = "file";
+      const res = await fetch(API_DB, { cache: "no-store" });
+      if (res.ok) {
+        const buf = new Uint8Array(await res.arrayBuffer());
+        bytes = buf.byteLength ? buf : null;
+      }
+    }
+  } catch {
+    /* no backend reachable — fall back to browser storage */
   }
+
+  if (backendMode !== "file") {
+    const saved = await idbGet(IDB_DB_KEY);
+    bytes = saved ? new Uint8Array(saved) : null;
+  }
+
+  db = bytes ? new SQL.Database(bytes) : new SQL.Database();
+  requestPersistentStorage();
   return db;
+}
+
+/** Ask the browser not to evict our IndexedDB fallback under storage pressure. */
+async function requestPersistentStorage() {
+  try {
+    if (navigator?.storage?.persist) {
+      const already = await navigator.storage.persisted?.();
+      if (!already) await navigator.storage.persist();
+    }
+  } catch {
+    /* not supported — ignore */
+  }
+}
+
+export function getStorageInfo() {
+  return { mode: backendMode };
 }
 
 export function getDb() {
@@ -137,7 +181,36 @@ export function exportBytes() {
 
 export async function persistNow() {
   if (!db) return;
-  await idbSet(IDB_DB_KEY, db.export());
+  const bytes = db.export();
+
+  if (backendMode === "file") {
+    try {
+      const res = await fetch(API_DB, {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
+        body: bytes,
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      saveErrorNotified = false;
+      return;
+    } catch (err) {
+      console.error("[db] local file save failed; keeping a browser backup", err);
+      if (!saveErrorNotified) {
+        saveErrorNotified = true;
+        bus.emit(EVENTS.TOAST, {
+          message: "Couldn't write the local .db file — is the server window still open? Saved a browser backup for now.",
+          type: "error",
+        });
+      }
+      // fall through and keep an IndexedDB backup so nothing is lost
+    }
+  }
+
+  try {
+    await idbSet(IDB_DB_KEY, bytes);
+  } catch (e) {
+    console.error("[db] IndexedDB persist failed", e);
+  }
 }
 
 const schedulePersist = debounce(() => {
@@ -150,14 +223,16 @@ export function loadFromBytes(bytes) {
   return db;
 }
 
-// Best-effort flush on tab close.
+// Best-effort flush on tab close. sendBeacon reliably delivers the bytes to the file
+// backend during unload; we also keep an IndexedDB copy as a belt-and-suspenders backup.
 window.addEventListener("beforeunload", () => {
   try {
-    if (db) {
-      const bytes = db.export();
-      // Fire-and-forget; IndexedDB writes during unload are best-effort.
-      idbSet(IDB_DB_KEY, bytes);
+    if (!db) return;
+    const bytes = db.export();
+    if (backendMode === "file" && navigator.sendBeacon) {
+      navigator.sendBeacon(API_DB, new Blob([bytes], { type: "application/octet-stream" }));
     }
+    idbSet(IDB_DB_KEY, bytes);
   } catch {
     /* ignore */
   }

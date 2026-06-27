@@ -15,6 +15,11 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.argv[2] || process.env.PORT || 8123);
 
+// The single source of truth: a real SQLite file on disk. The browser loads it on open
+// (GET /api/db) and writes it back on every change (POST /api/db). Override with DSA_DB.
+const DB_FILE = process.env.DSA_DB || path.join(ROOT, "data", "dsa-atlas.db");
+fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -32,8 +37,49 @@ const MIME = {
 };
 
 const server = http.createServer((req, res) => {
+  const reqUrl = (req.url || "/").split("?")[0];
+
+  // ---- Local SQLite file backend API ----
+  // The X-DSA-Backend header lets the client distinguish this server from a plain static one.
+  if (reqUrl === "/api/info") {
+    let exists = false, size = 0, mtime = null;
+    try { const st = fs.statSync(DB_FILE); exists = true; size = st.size; mtime = st.mtime.toISOString(); } catch {}
+    res.writeHead(200, { "Content-Type": "application/json", "X-DSA-Backend": "file", "Cache-Control": "no-store" });
+    return res.end(JSON.stringify({ backend: "file", path: DB_FILE, exists, size, mtime }));
+  }
+
+  if (reqUrl === "/api/db" && req.method === "GET") {
+    return fs.readFile(DB_FILE, (err, data) => {
+      if (err) { res.writeHead(404, { "X-DSA-Backend": "file" }); return res.end("no-db"); }
+      res.writeHead(200, { "Content-Type": "application/x-sqlite3", "X-DSA-Backend": "file", "Cache-Control": "no-store" });
+      res.end(data);
+    });
+  }
+
+  if (reqUrl === "/api/db" && req.method === "POST") {
+    const chunks = [];
+    let bytes = 0;
+    req.on("data", (c) => { chunks.push(c); bytes += c.length; });
+    req.on("end", () => {
+      const buf = Buffer.concat(chunks);
+      if (!buf.length) { res.writeHead(400); return res.end("empty"); }
+      // Atomic write: temp file then rename, so a crash mid-write can't corrupt the db.
+      const tmp = `${DB_FILE}.tmp-${process.pid}`;
+      fs.writeFile(tmp, buf, (err) => {
+        if (err) { res.writeHead(500); return res.end("write-failed"); }
+        fs.rename(tmp, DB_FILE, (err2) => {
+          if (err2) { res.writeHead(500); return res.end("rename-failed"); }
+          res.writeHead(200, { "Content-Type": "application/json", "X-DSA-Backend": "file" });
+          res.end(JSON.stringify({ ok: true, bytes: buf.length }));
+        });
+      });
+    });
+    req.on("error", () => { try { res.writeHead(500); res.end("err"); } catch {} });
+    return;
+  }
+
   try {
-    let urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
+    let urlPath = decodeURIComponent(reqUrl);
     if (urlPath === "/") urlPath = "/index.html";
 
     // Resolve safely within ROOT (block path traversal).
@@ -62,8 +108,9 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n  🧠  DSA Atlas running at  http://localhost:${PORT}\n`);
-  console.log("  Open the URL above in your browser. Press Ctrl+C to stop.\n");
+  console.log(`\n  🧠  DSA Atlas running at  http://localhost:${PORT}`);
+  console.log(`  💾  Data file: ${DB_FILE}`);
+  console.log("\n  Open the URL above in your browser. Press Ctrl+C to stop.\n");
 });
 
 server.on("error", (err) => {
