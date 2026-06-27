@@ -1,0 +1,11 @@
+# Test artifacts (auto-generated)
+tests/sql-wasm.cjs
+node_modules/
+
+# Local DB exports
+*.db
+data/*.db
+
+# OS noise
+.DS_Store
+Thumbs.db

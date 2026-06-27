@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DSA Atlas</title>
+  <meta name="description" content="A local-first second brain for your DSA learning journey." />
+
+  <link rel="stylesheet" href="src/styles/base.css" />
+  <link rel="stylesheet" href="src/styles/layout.css" />
+  <link rel="stylesheet" href="src/styles/components.css" />
+  <link rel="stylesheet" href="src/styles/pages.css" />
+  <link rel="stylesheet" href="src/styles/print.css" media="print" />
+  <link id="hljs-dark" rel="stylesheet" href="vendor/hljs-dark.css" />
+  <link id="hljs-light" rel="stylesheet" href="vendor/hljs-light.css" disabled />
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+</head>
+<body>
+  <div id="splash" class="splash">
+    <div class="splash-inner">
+      <div class="splash-mark">🧠</div>
+      <div class="splash-title">DSA Atlas</div>
+      <div class="splash-spinner"></div>
+      <div class="splash-note">Loading your knowledge base…</div>
+    </div>
+  </div>
+
+  <div id="app"></div>
+
+  <!-- Vendored, offline. Classic scripts define window.initSqlJs and window.hljs before the module runs. -->
+  <script src="vendor/sql-wasm.js"></script>
+  <script src="vendor/highlight.min.js"></script>
+  <script type="module" src="src/ui/app.js"></script>
+</body>
+</html>

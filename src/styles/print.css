@@ -1,0 +1,20 @@
+/* Print / Save-as-PDF styles. Hides chrome, prints the current page content cleanly. */
+
+@media print {
+  .sidebar, .topbar, .toast-container, .modal-portal, .cmd-overlay,
+  .page-head-actions, .detail-actions, .form-actions, .sticky-actions,
+  .filter-bar, .tab-bar, .review-controls, .review-skip { display: none !important; }
+
+  body { background: #fff; color: #000; }
+  .app-shell, .app-shell.is-collapsed { display: block; height: auto; }
+  .app-main { overflow: visible; }
+  .view { padding: 0; }
+  .page { max-width: 100%; animation: none; }
+
+  .card { border: 1px solid #ddd; box-shadow: none; break-inside: avoid; page-break-inside: avoid; }
+  .code-pre { white-space: pre-wrap; word-break: break-word; }
+  .stat-card, .rm-card { break-inside: avoid; }
+  a { color: #000; text-decoration: none; }
+
+  @page { margin: 1.5cm; }
+}
