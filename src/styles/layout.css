@@ -23,9 +23,9 @@
 .sidebar-brand { display: flex; align-items: center; justify-content: space-between; padding: 4px 6px 14px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.02em; white-space: nowrap; }
 .brand-mark { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(140deg, var(--accent), color-mix(in srgb, var(--accent) 55%, #000)); color: #fff; flex-shrink: 0; box-shadow: 0 4px 14px -4px var(--accent); }
-.sidebar-collapse { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--text-dim); transition: var(--t-fast); }
-.sidebar-collapse:hover { background: var(--card-hover); color: var(--text); }
-.is-collapsed .sidebar-collapse .icon { transform: rotate(180deg); }
+.nav-status-dot { width: 8px; height: 8px; border-radius: 50%; margin-left: auto; flex-shrink: 0; }
+.nav-status-dot--ok { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 20%, transparent); }
+.nav-status-dot--warn { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 22%, transparent); }
 
 .nav-group { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; flex: 1; }
 .nav-link {
@@ -44,9 +44,9 @@
 .sidebar-foot { border-top: 1px solid var(--border); padding-top: 8px; }
 
 .is-collapsed .brand-name,
-.is-collapsed .nav-label,
-.is-collapsed .sidebar-collapse { opacity: 0; pointer-events: none; }
+.is-collapsed .nav-label { opacity: 0; pointer-events: none; }
 .is-collapsed .nav-badge { position: absolute; top: 4px; right: 4px; transform: scale(.8); }
+.is-collapsed .nav-status-dot { position: absolute; top: 8px; right: 10px; margin: 0; }
 
 /* ---------------- Main ---------------- */
 .app-main { display: flex; flex-direction: column; min-width: 0; overflow-y: auto; }
@@ -60,7 +60,7 @@
   backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid var(--border);
 }
-.topbar-menu { display: none; }
+.topbar-menu { display: grid; }
 .topbar-search { flex: 1; max-width: 460px; display: flex; align-items: center; gap: 9px; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; color: var(--text-dim); cursor: text; transition: var(--t-fast); }
 .topbar-search:focus-within { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-soft); }
 .topbar-search-input { flex: 1; border: none; background: none; outline: none; color: var(--text); font-size: 13.5px; }
@@ -107,6 +107,10 @@
   }
   .app-shell.mobile-open .sidebar { transform: translateX(0); box-shadow: var(--shadow-lg); }
   .app-shell.mobile-open .mobile-scrim { display: block; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 55; animation: fadeIn var(--t); }
+  /* Collapse is a desktop-only concept — on mobile the slide-in sidebar is always full width. */
+  .app-shell.is-collapsed .sidebar { width: var(--sidebar-w); }
+  .app-shell.is-collapsed .nav-label, .app-shell.is-collapsed .brand-name { opacity: 1; pointer-events: auto; }
+  .app-shell.is-collapsed .nav-status-dot { position: static; margin-left: auto; top: auto; right: auto; }
   .topbar-menu { display: grid; }
   .view { padding: 20px 16px 56px; }
   .topbar { padding: 0 16px; }

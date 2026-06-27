@@ -34,19 +34,21 @@ export function createSidebar() {
     return a;
   });
 
+  // Storage-mode indicator: green = on-disk .db file, amber = browser fallback.
+  const mode = store.storageInfo().mode;
+  const statusDot = h("span", {
+    class: `nav-status-dot nav-status-dot--${mode === "file" ? "ok" : "warn"}`,
+    title: mode === "file" ? "Saving to local .db file" : "Fallback: browser storage — launch with Node",
+  });
+
   const settingsLink = h(
     "a",
     { class: "nav-link", href: "#/settings", "data-path": "/settings", title: "Settings" },
     icon("settings", { size: 18 }),
-    h("span", { class: "nav-label" }, "Settings")
+    h("span", { class: "nav-label" }, "Settings"),
+    statusDot
   );
   settingsLink._match = (p) => p.startsWith("/settings");
-
-  const collapseBtn = h(
-    "button",
-    { class: "sidebar-collapse", title: "Collapse sidebar (\\)", onClick: () => toggleCollapse() },
-    icon("chevronLeft", { size: 18 })
-  );
 
   const sidebar = h(
     "aside",
@@ -55,8 +57,7 @@ export function createSidebar() {
       h("a", { class: "brand", href: "#/" },
         h("span", { class: "brand-mark" }, icon("brain", { size: 20 })),
         h("span", { class: "brand-name" }, APP_NAME)
-      ),
-      collapseBtn
+      )
     ),
     h("nav", { class: "nav-group" }, ...links),
     h("div", { class: "sidebar-foot" }, settingsLink)

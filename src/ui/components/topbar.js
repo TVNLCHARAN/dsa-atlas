@@ -5,6 +5,7 @@ import { h } from "../../core/dom.js";
 import { icon } from "../icons.js";
 import { navigate } from "../../core/router.js";
 import { openPalette } from "./command-palette.js";
+import { toggleCollapse } from "./sidebar.js";
 import store from "../../services/store.js";
 import { bus, EVENTS } from "../../core/eventbus.js";
 
@@ -31,9 +32,17 @@ export function createTopbar() {
   };
   bus.on(EVENTS.THEME, syncTheme);
 
+  // One toggle: collapse the sidebar on desktop, slide it in/out on mobile.
   const menuBtn = h(
     "button",
-    { class: "icon-btn icon-btn--ghost topbar-menu", title: "Menu", onClick: () => document.querySelector(".app-shell")?.classList.toggle("mobile-open") },
+    {
+      class: "icon-btn icon-btn--ghost topbar-menu", title: "Toggle sidebar (\\)",
+      onClick: () => {
+        const shell = document.querySelector(".app-shell");
+        if (window.matchMedia("(max-width: 860px)").matches) shell?.classList.toggle("mobile-open");
+        else toggleCollapse();
+      },
+    },
     icon("menu", { size: 20 })
   );
 
