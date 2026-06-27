@@ -39,8 +39,10 @@ Requirements: **Node.js** *or* **Python 3** (you have both). No `npm install` ne
   weekly/monthly progress, goals.
 - **Roadmap** — the 37-concept linear path with status colors (🟢 completed · 🔵 current · ⚪ locked).
   Click any node to open its page.
-- **Concept pages** — curated reference (recognition patterns, when to use / not, complexity tables,
-  common mistakes, idiomatic template code, key observations, videos & articles) **plus** your own
+- **Concept pages** — a deep curated reference per topic: a markdown **"how to think"** overview,
+  recognition signals, when to use / not, **common patterns & variants**, complexity tables,
+  **edge cases**, common mistakes, idiomatic template code, key observations, **5 core problems**
+  (different variants, easy→hard, linked to LeetCode), and **3+ videos & articles** — plus your own
   auto-saving notebook and the problems you've solved under that topic.
 - **Add Problem** — a thorough capture form: timing, attempts, independence flags, rating, code,
   brute-force/optimized approaches, complexity, insights, recognition clue, edge cases, confidence,

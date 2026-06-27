@@ -11,6 +11,7 @@ import { confirmModal } from "../components/modal.js";
 import { toast } from "../components/toast.js";
 import { navigate } from "../../core/router.js";
 import { conceptContent } from "../../data/content.js";
+import { mdToHtml } from "../../core/markdown.js";
 import { CONCEPT_STATUS } from "../../core/config.js";
 import { formatDuration, formatDateShort } from "../../core/dates.js";
 
@@ -48,12 +49,50 @@ function linkList(items, iconName) {
   );
 }
 
+function patternDefs(items) {
+  return h("div", { class: "pattern-defs" },
+    ...(items || []).map((p) =>
+      h("div", { class: "pattern-def" },
+        h("span", { class: "pattern-def-name" }, p.name),
+        h("span", { class: "pattern-def-note" }, p.note || "")
+      )
+    )
+  );
+}
+
+function coreProblems(items) {
+  return h("div", { class: "core-problems" },
+    ...(items || []).map((p, i) =>
+      h("a", { class: "core-problem", href: p.url, target: "_blank", rel: "noopener" },
+        h("span", { class: "core-problem-num" }, String(i + 1)),
+        difficultyBadge(p.difficulty),
+        h("div", { class: "core-problem-body" },
+          h("span", { class: "core-problem-title" }, p.title),
+          p.pattern ? h("span", { class: "core-problem-note" }, p.pattern) : null
+        ),
+        icon("external", { size: 14 })
+      )
+    )
+  );
+}
+
 function referenceTab(content) {
   if (!content) return emptyState({ iconName: "book", title: "No reference content", message: "Reference material for this concept hasn't been added." });
   const wrap = h("div", { class: "concept-reference" });
 
-  wrap.appendChild(card({}, sectionHeader("Overview", { iconName: "book" }),
-    ...(content.description || "").split("\n\n").map((p) => h("p", { class: "prose" }, p))));
+  // Overview — markdown "how to think" explanation (falls back to plain paragraphs).
+  const overviewCard = card({});
+  overviewCard.appendChild(sectionHeader("Overview", { iconName: "book" }));
+  if (content.overview) {
+    overviewCard.appendChild(h("div", { class: "md prose-md", html: mdToHtml(content.overview) }));
+  } else {
+    (content.description || "").split("\n\n").forEach((p) => overviewCard.appendChild(h("p", { class: "prose" }, p)));
+  }
+  wrap.appendChild(overviewCard);
+
+  if (content.patterns?.length) {
+    wrap.appendChild(card({}, sectionHeader("Common patterns & variants", { iconName: "layers" }), patternDefs(content.patterns)));
+  }
 
   const grid = h("div", { class: "concept-2col" });
   grid.appendChild(card({}, sectionHeader("Recognition patterns", { iconName: "eye" }), bulletList(content.recognition, "zap")));
@@ -63,6 +102,7 @@ function referenceTab(content) {
   wrap.appendChild(grid);
 
   if (content.complexity?.length) wrap.appendChild(card({}, sectionHeader("Complexity", { iconName: "clock" }), complexityTable(content.complexity)));
+  if (content.edgeCases?.length) wrap.appendChild(card({}, sectionHeader("Edge cases to watch", { iconName: "target" }), bulletList(content.edgeCases, "alert")));
 
   if (content.template?.code) {
     const tc = card({});
@@ -72,6 +112,10 @@ function referenceTab(content) {
   }
 
   if (content.observations?.length) wrap.appendChild(card({}, sectionHeader("Key observations", { iconName: "lightbulb" }), bulletList(content.observations, "lightbulb")));
+
+  if (content.problems?.length) {
+    wrap.appendChild(card({}, sectionHeader("Core problems to master", { iconName: "problems", sub: "Different variants, easy → hard" }), coreProblems(content.problems)));
+  }
 
   const refs = h("div", { class: "concept-2col" });
   refs.appendChild(card({}, sectionHeader("Videos", { iconName: "play" }), linkList(content.videos, "play")));

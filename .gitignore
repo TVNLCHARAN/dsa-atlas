@@ -2,6 +2,9 @@
 tests/sql-wasm.cjs
 node_modules/
 
+# Internal authoring spec (kept local, not shipped)
+src/data/concepts/_SPEC.md
+
 # Local DB exports
 *.db
 data/*.db

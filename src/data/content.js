@@ -16,11 +16,15 @@ export function searchableConceptText(id) {
   return [
     c.summary,
     c.description,
+    c.overview,
     (c.recognition || []).join(" "),
     (c.whenToUse || []).join(" "),
     (c.whenNotToUse || []).join(" "),
     (c.commonMistakes || []).join(" "),
     (c.observations || []).join(" "),
+    (c.edgeCases || []).join(" "),
+    (c.patterns || []).map((p) => `${p.name} ${p.note}`).join(" "),
+    (c.problems || []).map((p) => p.title).join(" "),
     c.template?.code,
   ]
     .filter(Boolean)
